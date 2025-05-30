@@ -37,7 +37,7 @@ def get_train_embeds(model, size, defect_type, transform, device):
     train_embed = torch.cat(train_embed)
     return train_embed
 
-def eval_model(modelname, defect_type, device="cpu", save_plots=False, size=256, show_training_data=True, model=None, train_embed=None, head_layer=8, density=GaussianDensityTorch()):
+def eval_model(modelname, defect_type, device="cpu", save_plots=False, size=256, show_training_data=False, model=None, train_embed=None, head_layer=2, density=GaussianDensityTorch()):
     # create test dataset
     global test_data_eval,test_transform, cached_type
 
@@ -203,13 +203,13 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', default=False, type=str2bool,
                     help='use cuda for model predictions (default: False)')
 
-    parser.add_argument('--head_layer', default=8, type=int,
+    parser.add_argument('--head_layer', default=2, type=int,
                     help='number of layers in the projection head (default: 8)')
 
     parser.add_argument('--density', default="torch", choices=["torch", "sklearn"],
                     help='density implementation to use. See `density.py` for both implementations. (default: torch)')
 
-    parser.add_argument('--save_plots', default=True, type=str2bool,
+    parser.add_argument('--save_plots', default=False, type=str2bool,
                     help='save TSNE and roc plots')
     
 

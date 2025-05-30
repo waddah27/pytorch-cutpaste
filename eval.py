@@ -203,7 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', default=False, type=str2bool,
                     help='use cuda for model predictions (default: False)')
 
-    parser.add_argument('--head_layer', default=8, type=int,
+    parser.add_argument('--head_layer', default=2, type=int,
                     help='number of layers in the projection head (default: 8)')
 
     parser.add_argument('--density', default="torch", choices=["torch", "sklearn"],
