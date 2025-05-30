@@ -1,10 +1,10 @@
 import cv2
 from dotenv import load_dotenv
 # RTSP stream URL
-rtsp_url = "rtsp://admin:Royal1405@89.109.241.207:1001/Streaming/Channels/101/"
+load_dotenv()
 
 # Create a VideoCapture object
-cap = cv2.VideoCapture(rtsp_url)
+cap = cv2.VideoCapture(CAMERA_1)
 
 while True:
     ret, frame = cap.read()
