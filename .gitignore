@@ -1,1 +1,6 @@
 venv*
+Data/
+models/
+__pycache__/
+logdirs/
+.env
