@@ -2,7 +2,7 @@
 from sklearn.covariance import LedoitWolf
 from sklearn.neighbors import KernelDensity
 import torch
-
+from configs import DEVICE
 
 class Density(object):
     def fit(self, embeddings):
@@ -45,6 +45,8 @@ class GaussianDensityTorch(object):
 
         if mean.dim() == 1:  # Distribution mean.
             mean = mean.unsqueeze(0)
+        mean = mean.to(DEVICE)
+        inv_covariance = inv_covariance.to(DEVICE)
         x_mu = values - mean  # batch x features
         # Same as dist = x_mu.t() * inv_covariance * x_mu batch wise
         dist = torch.einsum("im,mn,in->i", x_mu, inv_covariance, x_mu)

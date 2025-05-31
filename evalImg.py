@@ -44,12 +44,13 @@ def eval_model(modelname, defect_type, device="cpu", save_plots=False, size=256,
     # TODO: cache is only nice during training. do we need it?
     if test_data_eval is None or cached_type != defect_type:
         cached_type = defect_type
-        test_transform = transforms.Compose([])
-        test_transform.transforms.append(transforms.Resize((size,size)))
-        test_transform.transforms.append(transforms.ToTensor())
-        test_transform.transforms.append(transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                            std=[0.229, 0.224, 0.225]))
-        test_data_eval = MVTecAT("Data", defect_type, size, transform = test_transform, mode="test")
+    
+    test_transform = transforms.Compose([])
+    test_transform.transforms.append(transforms.Resize((size,size)))
+    test_transform.transforms.append(transforms.ToTensor())
+    test_transform.transforms.append(transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                        std=[0.229, 0.224, 0.225]))
+    test_data_eval = MVTecAT("Data", defect_type, size, transform = test_transform, mode="test")
 
     dataloader_test = DataLoader(test_data_eval, batch_size=64,
                                     shuffle=False, num_workers=0)
@@ -86,121 +87,36 @@ def eval_model(modelname, defect_type, device="cpu", save_plots=False, size=256,
     embeds = torch.nn.functional.normalize(embeds, p=2, dim=1)
     train_embed = torch.nn.functional.normalize(train_embed, p=2, dim=1)
 
-    #create eval plot dir
-    if save_plots:
-        eval_dir = Path("eval") / modelname
-        eval_dir.mkdir(parents=True, exist_ok=True)
-        
-        # plot tsne
-        # also show some of the training data
-        show_training_data = False
-        if show_training_data:
-            #augmentation setting
-            # TODO: do all of this in a separate function that we can call in training and evaluation.
-            #       very ugly to just copy the code lol
-            min_scale = 0.5
-
-            # create Training Dataset and Dataloader
-            after_cutpaste_transform = transforms.Compose([])
-            after_cutpaste_transform.transforms.append(transforms.ToTensor())
-            after_cutpaste_transform.transforms.append(transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                            std=[0.229, 0.224, 0.225]))
-
-            train_transform = transforms.Compose([])
-            #train_transform.transforms.append(transforms.RandomResizedCrop(size, scale=(min_scale,1)))
-            #train_transform.transforms.append(transforms.GaussianBlur(int(size/10), sigma=(0.1,2.0)))
-            train_transform.transforms.append(CutPaste(transform=after_cutpaste_transform))
-            # train_transform.transforms.append(transforms.ToTensor())
-
-            train_data = MVTecAT("Data", defect_type, transform=train_transform, size=size)
-            dataloader_train = DataLoader(train_data, batch_size=32,
-                        shuffle=True, num_workers=8, collate_fn=cut_paste_collate_fn,
-                        persistent_workers=True)
-            # inference training data
-            train_labels = []
-            train_embeds = []
-            with torch.no_grad():
-                for x1, x2 in dataloader_train:
-                    x = torch.cat([x1,x2], axis=0)
-                    embed, logit = model(x.to(device))
-
-                    # generate labels:
-                    y = torch.tensor([0, 1])
-                    y = y.repeat_interleave(x1.size(0))
-
-                    # save 
-                    train_embeds.append(embed.cpu())
-                    train_labels.append(y)
-                    # only less data
-                    break
-            train_labels = torch.cat(train_labels)
-            train_embeds = torch.cat(train_embeds)
-
-            # for tsne we encode training data as 2, and augmentet data as 3
-            tsne_labels = torch.cat([labels, train_labels + 2])
-            tsne_embeds = torch.cat([embeds, train_embeds])
-        else:
-            tsne_labels = labels
-            tsne_embeds = embeds
-        plot_tsne(tsne_labels, tsne_embeds, eval_dir / "tsne.png")
-    else:
-        eval_dir = Path("unused")
+    
+    eval_dir = Path("unused")
     
     print(f"using density estimation {density.__class__.__name__}")
     density.fit(train_embed)
     distances = density.predict(embeds)
     #TODO: set threshold on mahalanobis distances and use "real" probabilities
 
-    roc_auc = plot_roc(labels, distances, eval_dir / "roc_plot.png", modelname=modelname, save_plots=save_plots)
+    roc_auc = calc_roc(labels, distances)
     
 
     return roc_auc
     
 
-def plot_roc(labels, scores, filename, modelname="", save_plots=False):
+def calc_roc(labels, scores):
 
     fpr, tpr, _ = roc_curve(labels, scores)
     roc_auc = auc(fpr, tpr)
 
-    #plot roc
-    if save_plots:
-        plt.figure()
-        lw = 2
-        plt.plot(fpr, tpr, color='darkorange',
-                lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
-        plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title(f'Receiver operating characteristic {modelname}')
-        plt.legend(loc="lower right")
-        # plt.show()
-        plt.savefig(filename)
-        plt.close()
-
     return roc_auc
-
-def plot_tsne(labels, embeds, filename):
-    tsne = TSNE(n_components=2, verbose=1, perplexity=30, n_iter=500)
-    embeds, labels = shuffle(embeds, labels)
-    tsne_results = tsne.fit_transform(embeds)
-    fig, ax = plt.subplots(1)
-    colormap = ["b", "r", "c", "y"]
-
-    ax.scatter(tsne_results[:,0], tsne_results[:,1], color=[colormap[l] for l in labels])
-    fig.savefig(filename)
-    plt.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='eval models')
-    parser.add_argument('--type', default="all",
+    parser.add_argument('--type', default="carpet",
                         help='MVTec defection dataset type to train seperated by , (default: "all": train all defect types)')
 
     parser.add_argument('--model_dir', default="models",
                     help=' directory contating models to evaluate (default: models)')
     
-    parser.add_argument('--cuda', default=False, type=str2bool,
+    parser.add_argument('--cuda', default=True, type=str2bool,
                     help='use cuda for model predictions (default: False)')
 
     parser.add_argument('--head_layer', default=2, type=int,

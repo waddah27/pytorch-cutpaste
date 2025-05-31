@@ -6,3 +6,4 @@ seaborn
 tqdm
 tensorboard
 dotenv
+opencv-python
