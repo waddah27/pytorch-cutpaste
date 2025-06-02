@@ -6,7 +6,15 @@ from configs import *
 from model import ProjectionNet
 from density import GaussianDensityTorch
 from inference import *
-
+from pprint import pprint
+import logging
+logger = logging.getLogger("anomaly_detection_logger")
+logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler('debug.log')
+file_handler.setLevel(logging.DEBUG)  # Log all levels >= DEBUG to the file
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 # RTSP stream URL
 load_dotenv()
 
@@ -44,16 +52,22 @@ else:
 
 # READING FRAMES
 frame_id = 0
+video_fps = cap.get(cv2.CAP_PROP_FPS) 
+skip_interval = int(round(video_fps / FRAME_RATE))
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
-    frame_id+=1
-    if frame_id%FRAME_RATE!=0:
+    
+    if frame_id % skip_interval !=0:
         continue
+
+    frame_id+=1
+    
     results = analyze_video_frame(frame, model, density_estimator)
     print(f"Anomaly score: {results['max_score']:.2f}")
-    
+    pprint(f"scores along sections: {results['sect_scores']}")
+    logger.debug(f"scores along sections: \n {results['sect_scores']}")
     # Visualize if using patch mode
     if False:
         if 'anomaly_map' in results:

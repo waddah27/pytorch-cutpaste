@@ -4,3 +4,4 @@ models/
 __pycache__/
 logdirs/
 .env
+*.log

@@ -21,7 +21,7 @@ transform = transforms.Compose([
 
 # Initialize density estimator
 
-FIT_DENSITY_ESTIMATOR = False
+FIT_DENSITY_ESTIMATOR = True 
 THRESHOLD = 210 # TODO this is for now empirical value, try to find better estimation to the thresh..
 
-FRAME_RATE = 30
+FRAME_RATE = 1

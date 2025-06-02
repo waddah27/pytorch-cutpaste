@@ -64,8 +64,11 @@ def process_by_patches(frame, model, density_estimator, patch_size=IMG_SIZE):
     # Create anomaly map
     # num_cols = (w // (patch_size//2)) + 1
     # anomaly_map = np.array(scores).reshape(-1, num_cols)
-    
+    sect_scores = {}
+    for i in range(len(scores)):
+        sect_scores[f"Sect_{i}"] = scores[i]
     return {
+        'sect_scores': sect_scores,
         'max_score': max(scores),
         'mean_score': np.mean(scores),
         # 'anomaly_map': anomaly_map
